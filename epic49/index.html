@@ -92,7 +92,6 @@
 <div class="card">
   <h2>Per uplink <span>(totals over the whole event)</span></h2>
   <div id="tbl"></div>
-  <p class="note" id="notes"></p>
 </div>
 <div class="card">
   <h2>Lancache <span>(5-minute average, cache server network interface)</span></h2>
@@ -109,7 +108,6 @@
     <span><i style="background:#5fd0a5"></i>From the cache</span>
     <span><i style="background:#c9cdd3"></i>Direct from the internet</span>
   </div>
-  <p class="note" id="cacheNote"></p>
 </div>
 <div class="card">
   <h2>Devices on the network <span>(active DHCP leases)</span></h2>
@@ -270,11 +268,6 @@ chart(document.getElementById('srcChart'), {
   series: [{ name: 'Direct from the internet', color: '#c9cdd3', data: DATA.direct }, { name: 'From the cache', color: '#5fd0a5', data: DATA.cacheOut }],
   stacked: true, H: 380, annotate: false,
 });
-const delivered = S.cache.direct + S.cache.srv;
-document.getElementById('cacheNote').innerHTML =
-  'Source: network interface counters on the cache server (LibreNMS and Prometheus agree). Players received about ' + fmtTB(delivered) + ' TB in total: ' + fmtTB(S.cache.direct) +
-  ' TB straight from the internet and ' + fmtTB(S.cache.srv) + ' TB from the cache, which itself fetched ' + fmtTB(S.cache.fet) + ' TB (about ' + pct(S.cache.fet, S.fib.dn - S.cache.fet) + ' of the WAN_FIBRE download). ' +
-  'Hit rate is estimated as 1 − fetched ÷ served, because the cache’s own hit/miss counters aren’t collected. Downloads served from the cache stay inside the network, so they are added to the firewall’s internet traffic here.';
 chart(document.getElementById('devChart'), {
   series: [{ name: 'Devices', color: '#F47B20', data: DATA.leases }], stacked: false, H: 340,
   steps: [50, 100, 200, 250, 500], fmtVal: v => Math.round(v) + ' devices', tickFmt: v => v,
@@ -297,13 +290,6 @@ const tr = (name, c, d, cls) => '<tr class="' + (cls || '') + '"><td>' + (c ? '<
 S.bgp.share = bShare; S.fib.share = 100 - bShare;
 document.getElementById('tbl').innerHTML = '<table class="tbl"><tr><th>Uplink</th><th>Download</th><th>Upload</th><th>Peak down</th><th>Peak up</th><th>Share of down</th></tr>' +
   tr('BGP', COL.bgp, S.bgp) + tr('WAN_FIBRE', COL.fib, S.fib) + tr('All internet (LAN)', null, S.lan, 'tot') + '</table>';
-const gapH = DATA.gaps.reduce((a, [x, y]) => a + (y - x + 1), 0) * DATA.step / 3600;
-document.getElementById('notes').innerHTML =
-  'Source: LibreNMS, OPNsense firewall ports LAN, BGP and WAN_FIBRE (5-minute averages, so short bursts are smoothed). ' +
-  'The BGP link came into service on Wednesday at ' + fmtDT(ts(DATA.preBgp), { hour: '2-digit', minute: '2-digit' }) + '; before that all traffic used the fibre. ' +
-  'LibreNMS did not poll for about ' + gapH.toFixed(1) + ' hours overnight on Thursday (shaded). The total internet traffic for that time is real, taken from the core switch’s link to the firewall; ' +
-  'the BGP / fibre split is estimated from the share either side of the outage and is about ' + S.est.dn.toFixed(2) + ' TB of the download and ' + S.est.up.toFixed(2) + ' TB of the upload.';
-
 // ---- heatmap: day rows x hour columns, avg download ----
 const cells = new Map();
 for (let i = 0; i < n; i++) {
